@@ -14,7 +14,9 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-	
+import os
+from dateutil.parser import parse as parsedate
+import datetime
 # univariate cnn lstm example
 from numpy import array
 from tensorflow.keras.models import Sequential
@@ -27,65 +29,199 @@ from keras.layers.convolutional import MaxPooling1D
 
 
 
-print(tf.__version__)
 
-time_step = []
-quantity  = []
 
-df = pd.read_csv('data/wcestus1.csv',sep=',')
-date_list = df.DATE
-barrel_seq= df.drop(columns='DATE')
-#print(df.head())
-print(date_list[len(date_list)-8:])
-print(barrel_seq)
-
-def plot_series(time, series, format="-", start=0, end=None):
-    plt.plot(time[start:end], series[start:end], format)
-    plt.xlabel("Time")
-    plt.ylabel("Value")
-    plt.grid(True)
 
 #Take a look at the data:
-time = np.arange(len(barrel_seq))
+#time = np.arange(len(barrel_seq))
 #plt.figure(figsize=(10, 6))
 #plot_series(time, barrel_seq)
 
-scaler = MinMaxScaler()
-scaler.fit(barrel_seq)
 
-barrel_seq = scaler.transform(barrel_seq)
 
 
 #let's create a training and testing set:
 #copy_set   = barrel_seq.copy()
 #train_set  = copy_set[:(len(copy_set)-52)]
 #test_set   = copy_set[(len(copy_set)-53):-1]
-print(len(barrel_seq))
+#print(len(barrel_seq))
 # univariate cnn lstm example
-from numpy import array
-from keras.models import Sequential
-from keras.layers import LSTM
-from keras.layers import Dense
-from keras.layers import Flatten
-from keras.layers import TimeDistributed
-from keras.layers.convolutional import Conv1D
-from keras.layers.convolutional import MaxPooling1D
 
-# split a univariate sequence into samples
-def split_sequence(sequence, n_steps):
-	X, y = list(), list()
-	for i in range(len(sequence)):
-		# find the end of this pattern
-		end_ix = i + n_steps
-		# check if we are beyond the sequence
-		if end_ix > len(sequence)-1:
-			break
-		# gather input and output parts of the pattern
-		seq_x, seq_y = sequence[i:end_ix], sequence[end_ix]
-		X.append(seq_x)
-		y.append(seq_y)
-	return array(X), array(y)
 
+class CNN_LSTM_Univariate:
+    
+    scaler = MinMaxScaler()
+    avg = []
+    
+    def __init__(self):
+        pass
+
+    def bulk_pred_data(self,last_in_set):
+        full_df   = pd.read_csv('data/all_eia_stock_sheet_latest.csv',sep=';')
+        df        = full_df[["Date","WCESTUS1"]]
+        date_list = df.Date
+        barrel_seq= df.drop(columns='Date')
+        print(date_list.iloc[-1])
+        self.last_date_in_file = date_list.iloc[-1]
+        print(date_list[len(date_list)-8:])
+        print(barrel_seq)    
+        
+        self.scaler.fit(barrel_seq)
+
+        barrel_seq = self.scaler.transform(barrel_seq)
+        
+        return barrel_seq
+        
+    
+    def get_data(self):
+        full_df   = pd.read_csv('data/all_eia_stock_sheet_latest.csv',sep=';')
+        df        = full_df[["Date","WCESTUS1"]]
+        date_list = df.Date
+        barrel_seq= df.drop(columns='Date')
+        print(date_list.iloc[-1])
+        self.last_date_in_file = date_list.iloc[-1]
+        print(date_list[len(date_list)-8:])
+        print(barrel_seq)    
+
+        
+        self.scaler.fit(barrel_seq)
+
+        barrel_seq = self.scaler.transform(barrel_seq)
+        
+        return barrel_seq
+
+    def plot_series(self,time, series, format="-", start=0, end=None):
+        plt.plot(time[start:end], series[start:end], format)
+        plt.xlabel("Time")
+        plt.ylabel("Value")
+        plt.grid(True)    
+    
+    # split a univariate sequence into samples
+    def split_sequence(self,sequence, n_steps):
+        X, y = list(), list()
+        for i in range(len(sequence)):
+            # find the end of this pattern
+            end_ix = i + n_steps
+            # check if we are beyond the sequence
+            if end_ix > len(sequence)-1:
+                break
+            # gather input and output parts of the pattern
+            seq_x, seq_y = sequence[i:end_ix], sequence[end_ix]
+            X.append(seq_x)
+            y.append(seq_y)
+        return array(X), array(y)
+
+
+
+    #=====================================================
+    # define model for quick look at learning rate tuning
+    #=====================================================
+    def create_model(self,epochs,n_steps,n_features,verbosity,X,y):
+        model = Sequential()
+        model.add(TimeDistributed(Conv1D(filters=64, kernel_size=1, activation='relu'), input_shape=(None, n_steps, n_features)))
+        model.add(TimeDistributed(MaxPooling1D(pool_size=2)))
+        model.add(TimeDistributed(Flatten()))
+        model.add(LSTM(50, activation='tanh'))
+        model.add(Dense(1))
+        model.compile(optimizer='adam', loss='mse')
+
+        #opt = Adam(lr=0.00001)
+        #model.compile(optimizer=opt, loss='mae')
+        # revisit for best lr
+        #lr_schedule = tf.keras.callbacks.LearningRateScheduler(
+        #	lambda epoch: 1e-8 * 10**(epoch / 20))
+        history = model.fit(X,y, epochs=epochs,verbose=verbosity)
+        #print(history.history['loss'])
+        #sys.exit()
+        return model
+
+    
+    def make_prediction(self,model,size):
+        seq_pred_start = len(barrel_seq) - size
+        print(seq_pred_start)
+        x_input = np.array(barrel_seq[seq_pred_start:])
+        n_features = 1
+        n_seq = int(size/2) #split into half window size
+        n_steps = 2
+        x_input = x_input.reshape((1, n_seq, n_steps, n_features))
+        yhat = model.predict(x_input, verbose=0)
+        print(f"STEPS: {n_steps}")
+        self.avg = np.append(self.avg,self.scaler.inverse_transform(yhat))
+        return self.scaler.inverse_transform(yhat)
+
+    
+    def get_avg_prediction(self,barrel_seq):
+        """
+        To smooth out the values we'll average three window sizes together
+        to help improve generalizing on the final prediction
+        """
+        window_sizes = [8,12,16]
+        for size in window_sizes:
+            print(f"Starting: {size}")
+            pred_values = []
+            epoch_sizes = [250, 500] #, 1000]
+            for epoch in epoch_sizes:
+                for x in range(0, 3):
+                    pred_model = None
+                    #print(f"IN: {size}")
+                    n_steps = size
+                    # split into samples
+                    X, y = self.split_sequence(barrel_seq, n_steps)
+                    n_features = 1
+                    n_seq = int(size/2)
+                    #now reshape for conv
+                    n_steps = 2
+                    X = X.reshape((X.shape[0], n_seq, n_steps, n_features))
+                    pred_model = self.create_model(epoch,n_steps,n_features,0,X,y)
+                    pred_values = np.append(pred_values,self.make_prediction(pred_model,size))
+                    print(f"LOOP #: {x} during window: {size} and epoch size: {epoch}")
+                print(f"Windows={size} & Epoch size= {epoch} / Results:")
+                print(pred_values)
+                print("Averages:")
+                print(np.mean(pred_values))
+                #pred_values = []
+
+        print(f"FINAL: { np.mean(pred_values) }")
+        print("===========")
+        for i in pred_values:
+            print(i)
+        return np.mean(pred_values)
+        
+    def update_prediction_file(self,prediction):
+        last_pred_date = parsedate(self.last_date_in_file,"")
+        print(last_pred_date)
+        #date_1 = datetime.strptime(last_pred_date, "%m/%d/%y")
+        next_pred_date = last_pred_date + datetime.timedelta(days=7)        
+        print(f"NEXT: {next_pred_date.strftime('%b %d, %Y')}")
+        next_pred_str = next_pred_date.strftime('%b %d, %Y')
+        pred_file = "data/predictions/univariate_weekly_pred.csv"
+        f = open(pred_file,"a+")
+        f.write(f"{next_pred_str};{int(prediction)}\n")
+        f.close()
+            
+        
+
+obj = CNN_LSTM_Univariate()
+#barrel_seq = obj.bulk_pred_data(x)
+barrel_seq = obj.get_data()
+pred = obj.get_avg_prediction(barrel_seq)
+obj.update_prediction_file(pred)
+
+
+#i=1
+#for x in list(range(1988)):
+    #print(i,x)
+    #i=i+1
+#    if(x >= 1945):
+#        barrel_seq = obj.bulk_pred_data(x)
+#        pred = obj.get_avg_prediction(barrel_seq)
+#        obj.update_prediction_file(pred)
+        
+    
+#print(f"TFORM:\n{tformed_data}")
+
+
+"""
 # define input sequence
 #raw_seq = [10, 20, 30, 40, 50, 60, 70, 80, 90]
 # choose a number of time steps
@@ -97,75 +233,4 @@ n_features = 1
 n_seq = 8
 n_steps = 2
 X = X.reshape((X.shape[0], n_seq, n_steps, n_features))
-
-#=====================================================
-# define model for quick look at learning rate tuning
-#=====================================================
-def create_model(epochs,n_steps,n_features,verbosity,X,y):
-	model = Sequential()
-	model.add(TimeDistributed(Conv1D(filters=64, kernel_size=1, activation='relu'), input_shape=(None, n_steps, n_features)))
-	model.add(TimeDistributed(MaxPooling1D(pool_size=2)))
-	model.add(TimeDistributed(Flatten()))
-	model.add(LSTM(50, activation='tanh'))
-	model.add(Dense(1))
-	model.compile(optimizer='adam', loss='mse')
-
-	#opt = Adam(lr=0.00001)
-	#model.compile(optimizer=opt, loss='mae')
-	# revisit for best lr
-	#lr_schedule = tf.keras.callbacks.LearningRateScheduler(
-	#	lambda epoch: 1e-8 * 10**(epoch / 20))
-	history = model.fit(X,y, epochs=epochs,verbose=verbosity)
-	#print(history.history['loss'])
-	#sys.exit()
-	return model
-
-avg = []
-def make_prediction(model,size):
-	seq_pred_start = len(barrel_seq) - size
-	print(seq_pred_start)
-	x_input = np.array(barrel_seq[seq_pred_start:])
-	#print(scaler.inverse_transform(x_input))
-	n_features = 1
-	n_seq = int(size/2) #split into half window size
-	n_steps = 2
-	x_input = x_input.reshape((1, n_seq, n_steps, n_features))
-	yhat = pred_model.predict(x_input, verbose=0)
-	print(f"STEPS: {n_steps}")
-	#print(scaler.inverse_transform(yhat))
-	global avg
-	avg = np.append(avg,scaler.inverse_transform(yhat))
-	return scaler.inverse_transform(yhat)
-
-def write_to_file(out_type,file_loc):
-	fp = open
-
-window_sizes = [8,12,16]
-for size in window_sizes:
-	print(f"Starting: {size}")
-	pred_values = []
-	epoch_sizes = [250, 500, 1000]
-	for epoch in epoch_sizes:
-		for x in range(0, 3):
-			pred_model = None
-			#print(f"IN: {size}")
-			n_steps = size
-			# split into samples
-			X, y = split_sequence(barrel_seq, n_steps)
-			n_features = 1
-			n_seq = int(size/2)
-			#now reshape for conv
-			n_steps = 2
-			X = X.reshape((X.shape[0], n_seq, n_steps, n_features))
-
-			#x_input = x_input.reshape((1, n_seq, n_steps, n_features))
-
-			pred_model = create_model(epoch,n_steps,n_features,0,X,y)
-			pred_values = np.append(pred_values,make_prediction(pred_model,size))
-			print(f"LOOP #: {x} during window: {size} and epoch size: {epoch}")
-		print(f"Windows={size} & Epoch size= {epoch} / Results:")
-		print(pred_values)
-		print("Averages:")
-		print(np.mean(pred_values))
-		pred_values = []
-
+"""

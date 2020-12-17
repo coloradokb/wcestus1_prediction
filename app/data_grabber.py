@@ -109,27 +109,23 @@ class DataGrabber:
         df['Date'] = pd.to_datetime(df['Date'])
         df = df.set_index('Date')
 
-        file_name = f"{os.path.realpath('../data')}/eia_pricing_latest.csv"
+        file_name = "data/eia_pricing_latest.csv"
         df.to_csv(file_name, sep=';', encoding='utf-8')
     
     def get_eia_stocks_data(self,df):
         now = datetime.now()
         print ("Current date and time : ")
         print (now.strftime("%Y-%m-%d %H:%M:%S"))
-        #date_string = (now.strftime("%Y_%m_%d_%H_%M_%S"))
-        file_name = f"{os.path.realpath('../data')}/all_eia_stock_sheet_latest.csv"
-        #df = df[start_date:]
-        #df.datasheet()
-        #all_sheet_df = df['WCESTUS1']
+      
+        file_name = "data/all_eia_stock_sheet_latest.csv"
         df.index = df.index.strftime('%b %d, %Y') #revert format back to orig
         print(df.tail())
         
-        #print (wcestus1_df.head(20),len(wcestus1_df))
         df.to_csv(file_name, sep=';', encoding='utf-8')
-        #print(os.path.realpath('../data'))        
+    
     
     def get_wcestus1_data(self,df,write_file=True):
-        file_name = f"{os.path.realpath('../data')}/wcestus1_latest.csv"
+        file_name = "data/wcestus1_latest.csv"
         wcestus1_df = df['WCESTUS1']      
         #print (wcestus1_df.head(20),len(wcestus1_df))
         wcestus1_df.to_csv(file_name, sep=';', encoding='utf-8')
@@ -146,9 +142,9 @@ class DataGrabber:
         start_date = '2010-01-01'
         url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?bgcolor=%23e1e9f0&chart_type=line&drp=0&fo=open%20sans&graph_bgcolor=%23ffffff&height=450&mode=fred&recession_bars=on&txtcolor=%23444444&ts=12&tts=12&width=968&nt=0&thu=0&trc=0&show_legend=yes&show_axis_titles=yes&show_tooltip=yes&id=ICSA&scale=left&cosd={start_date}&coed={end_date}&line_color=%234572a7&link_values=false&line_style=solid&mark_type=none&mw=3&lw=2&ost=-99999&oet=99999&mma=0&fml=a&fq=Weekly%2C%20Ending%20Saturday&fam=avg&fgst=lin&fgsnd=2020-02-01&line_index=1&transformation=lin&vintage_date={end_date}&revision_date={end_date}&nd=1967-01-07"
 
-        download_outfile_name = f"{os.path.realpath('../data')}/ICSA_current.csv"        
+        download_outfile_name = "data/ICSA_current.csv"        
 
-        outfile_name = f"{os.path.realpath('../data')}/ICSA_current_with_offset-1.csv"        
+        outfile_name = "data/ICSA_current_with_offset-1.csv"        
         response = requests.get(url)
         totalbits = 0
         try:
@@ -173,15 +169,17 @@ class DataGrabber:
         return df
 
 dg = DataGrabber()
-#dg.get_weekly_unemployment_data('','')
-operation = 'pricing'
-proc_new = dg.download_eia_data(operation)
-if(proc_new == 1):
-    if operation == 'reserves':
-        datasheet = dg.process_eia_sheet()
-        dg.get_eia_stocks_data(datasheet)
-        dg.get_wcestus1_data(datasheet,None)
-    if operation == 'pricing':
-        datasheet = dg.process_oil_price_history()
-        
-   
+source = 'eia'
+
+if source=='eia':
+    eia_operation = 'pricing'
+    proc_new = dg.download_eia_data(eia_operation)
+    if(proc_new == 1):
+        if eia_operation == 'reserves':
+            datasheet = dg.process_eia_sheet()
+            dg.get_eia_stocks_data(datasheet)
+            dg.get_wcestus1_data(datasheet,None)
+        if eia_operation == 'pricing':
+            datasheet = dg.process_oil_price_history()
+if source=='icsa':
+    dg.get_weekly_unemployment_data('','')
