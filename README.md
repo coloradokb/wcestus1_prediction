@@ -16,3 +16,5 @@ Dr. Vytautas Bielinskas on youtube ==> https://www.youtube.com/watch?v=gSYiKKoRE
 Jason Brownlee  ==> https://machinelearningmastery.com/how-to-develop-lstm-models-for-multi-step-time-series-forecasting-of-household-power-consumption/
 
 
+Notes:
+Prediction (mae) does well for most of 2010 through end of 2019. Once covid-19 starts (2020) up, it appears the errors increase quickly. To help with this more features outside of barrel production should be used. Eg, weekly unemployment (icsa) seems to help, but not nearly enough. 
