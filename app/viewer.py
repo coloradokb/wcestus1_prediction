@@ -6,11 +6,10 @@ from pathlib import Path
 import os
 
 class Viewer:
-    DATE = 'Date'
     #BARRELS_DS = 'wcest1_multivariate_features.csv'
     BARRELS_PRED_DS = 'univariate_weekly_pred.csv'
     #BARRELS_PRED_DS = 'univariate_weekly_pred_50_100.csv'
-    BARRELS_ACTUAL_DS = 'wcestus1_latest.csv'
+    BARRELS_ACTUAL_DS = 'all_eia_stock_sheet_latest.csv'
     
 
     def __init__(self, display_model,layout="wide"):
@@ -22,9 +21,10 @@ class Viewer:
 
     #@st.cache
     def load_data(self,nrows):
-        df = pd.read_csv('../data/'+self.BARRELS_ACTUAL_DS, header=0,
+        df = pd.read_csv('data/'+self.BARRELS_ACTUAL_DS, header=0,
                            infer_datetime_format=True, delimiter=';',
-                           parse_dates=[self.DATE], index_col=[self.DATE])
+                           parse_dates=['Date'], index_col=['Date'])
+        df = df['WCESTUS1']
         df = df.fillna(0)
         df = df[len(df)-nrows:]
         #df = df.sort_index(ascending=False)
@@ -32,9 +32,9 @@ class Viewer:
         return df
 
     def load_pred_data(self):
-            df = pd.read_csv('../data/predictions/'+self.BARRELS_PRED_DS, header=0,
+            df = pd.read_csv('data/predictions/'+self.BARRELS_PRED_DS, header=0,
                              infer_datetime_format=True, delimiter=';',
-                             parse_dates=[self.DATE], index_col=[self.DATE]
+                             parse_dates=['Date'], index_col=['Date']
                             )
             df = df.fillna(0)
             return df
@@ -54,7 +54,7 @@ class Viewer:
         path=os.path.abspath(os.path.join(".", os.pardir))
         st.write(os.path.abspath(os.path.join(".", os.pardir)))
         
-        all_barrel_df = pd.read_csv(path+'/data/all_eia_stock_sheet_latest.csv', header=0,
+        all_barrel_df = pd.read_csv('data/all_eia_stock_sheet_latest.csv', header=0,
                                     infer_datetime_format=True, delimiter=';',
                                     parse_dates=['Date'], index_col=['Date'])
         
@@ -63,7 +63,7 @@ class Viewer:
         all_barrel_df['year_plus_week'] = (all_barrel_df.index.year).astype('string') + '-' + (all_barrel_df.index.week).astype('string')
         all_barrel_df = all_barrel_df['2019-01-01':'2021-01-01']
         
-        s_and_p_df = pd.read_csv(path+'/data/s_and_p_weekly.csv',header=0,
+        s_and_p_df = pd.read_csv('data/s_and_p_weekly.csv',header=0,
                                  infer_datetime_format=True, delimiter=',',
                                  parse_dates=['Date'] ,index_col=['Date'])
         s_and_p_df['week_of_year'] = s_and_p_df.index.week
