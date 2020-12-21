@@ -46,7 +46,10 @@ class Viewer:
         df['ERR'] = pd.to_numeric(df.WCESTUS1) - pd.to_numeric(df.Prediction)
         #st.write(df)
         return df
-
+    
+    """
+    commenting out S&P section for now. I can find zero correlation to add to the features for determining oil reserves level.
+    
     def graph_barrels_and_snp(self):
         from sklearn.preprocessing import StandardScaler
         scaler = StandardScaler()
@@ -84,7 +87,7 @@ class Viewer:
         combo_df = pd.DataFrame(scaler.fit_transform(combo_df), columns=combo_df.columns, index=combo_df.index)
 
         st.write(combo_df)
-        st.line_chart(combo_df)
+        st.line_chart(combo_df) """
         
     def mat_graph(self,data):
         arr = np.random.normal(1, 1, size=100)
@@ -135,4 +138,4 @@ y  = vc.load_pred_data()
 comparison_df = vc.merge_actual_and_pred(x,y)
 vc.display_data(comparison_df)
 comparison_df.to_csv("/tmp/all_pred.csv",sep=',', encoding='utf-8')
-vc.graph_barrels_and_snp()
+#vc.graph_barrels_and_snp()

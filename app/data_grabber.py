@@ -125,7 +125,7 @@ class DataGrabber:
     
     
     def get_wcestus1_data(self,df,write_file=True):
-        file_name = "data/wcestus1_latest.csv"
+        file_name = "data/all_eia_stock_sheet_latest.csv"
         wcestus1_df = df['WCESTUS1']      
         #print (wcestus1_df.head(20),len(wcestus1_df))
         wcestus1_df.to_csv(file_name, sep=';', encoding='utf-8')
@@ -138,8 +138,6 @@ class DataGrabber:
     def get_weekly_unemployment_data(self,start_date,end_date):
         #this data comes in weekly. Looks to be off by one day when matching to EIA data
         #need to shift this data to match.  User of their API is next :)
-        end_date   = '2020-12-31'
-        start_date = '2010-01-01'
         url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?bgcolor=%23e1e9f0&chart_type=line&drp=0&fo=open%20sans&graph_bgcolor=%23ffffff&height=450&mode=fred&recession_bars=on&txtcolor=%23444444&ts=12&tts=12&width=968&nt=0&thu=0&trc=0&show_legend=yes&show_axis_titles=yes&show_tooltip=yes&id=ICSA&scale=left&cosd={start_date}&coed={end_date}&line_color=%234572a7&link_values=false&line_style=solid&mark_type=none&mw=3&lw=2&ost=-99999&oet=99999&mma=0&fml=a&fq=Weekly%2C%20Ending%20Saturday&fam=avg&fgst=lin&fgsnd=2020-02-01&line_index=1&transformation=lin&vintage_date={end_date}&revision_date={end_date}&nd=1967-01-07"
 
         download_outfile_name = "data/ICSA_current.csv"        
@@ -182,4 +180,4 @@ if source=='eia':
         if eia_operation == 'pricing':
             datasheet = dg.process_oil_price_history()
 if source=='icsa':
-    dg.get_weekly_unemployment_data('','')
+    dg.get_weekly_unemployment_data('2010-01-01','2021-12-31')
