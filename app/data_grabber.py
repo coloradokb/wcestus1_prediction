@@ -170,13 +170,13 @@ dg = DataGrabber()
 source = 'eia'
 
 if source=='eia':
-    eia_operation = 'pricing'
+    eia_operation = 'reserves'
     proc_new = dg.download_eia_data(eia_operation)
     if(proc_new == 1):
         if eia_operation == 'reserves':
             datasheet = dg.process_eia_sheet()
             dg.get_eia_stocks_data(datasheet)
-            dg.get_wcestus1_data(datasheet,None)
+            #dg.get_wcestus1_data(datasheet,None)
         if eia_operation == 'pricing':
             datasheet = dg.process_oil_price_history()
 if source=='icsa':
